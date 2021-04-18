@@ -327,4 +327,64 @@ realwid = ListPlot[  Table[2*a[t][0], {t, dt, t3 - dt, dt}]  ];
 error = ListPlot[ 
    Table[ x2[t] - x1[t] - 2*a[t][0]/dn, {t, dt, t3 - dt, dt}] ];
 
+(*因為沿y方向各接觸區間的運動學（等效曲率半徑、相對滑動速度等）、力學參數（負載、最大赫茲壓力、接觸寬度）完全相同，所以無需重複計算，只需以u=0之端面上之接觸點對應的磨紋單元作計算
+定義
+對於任意磨紋單元（不一定是u=0之端面上的）
+1）y軸細分量subdy
+2）y軸細分間隔instdy，無因次dimeinstdy
+3）各細分區間對應的實際y坐標：realy[j]；無因次y坐標：ny[j]，j代表從最低端之x軸數起，第j條細分的x軸*)
+subdy = 4;
+disdy = LT/subdy;
+dimedistdy = T/subdy;
+For[ j = 0, j <= subdy - 1, j++,
+  realy[j] = j*disdy;
+  ny[j] = j*dimedistdy;
+  ];
+
+
+Surface analysis
+Grab data points along each subx - axis and generate real contact data
+
+SetDirectory[NotebookDirectory[]];
+unit1 = Flatten[Import["無標籤_直磨紋100_100.xlsx"], 1];
+numx = Length[unit1[[1]]];(*在excel檔案中，x方向節點數量*)
+(*fool-proofing*)
+If[ numx - T != 0, 
+ Print[ Text[Style["error", Large], Background -> Red] ] ];
+ For[ j = 0, j <= 3, j++,
+  (*因為ny[0]定義為0，所以+1*)
+  xdata[j] = unit1[[  ny[j] + 1  ]];
+  ];
+ For[ t = dt, t <= t3 - dt, t += dt,
   
+  For[ j = 0, j <= 3, j++,
+    (*儲存真實接觸區高度曲線的數組*)
+    conheightdata[t][j] = {};
+    
+    If[n2[t] > n1[t],
+     (*若右端點之首週期坐標n2[t]  大於  左端點之首週期坐標n1[
+     t]，則接觸區沒有跨越不同接觸單元，即按順序提取高度數據*)
+     (*注意：n1[t]，n2[t]都需+1，才是數組xdata[j]中對應的節點*)
+     For[i = n1[t] + 1, i <= n2[t] + 1, i++,
+       AppendTo[    conheightdata[t][j], xdata[j][[i]]    ];
+       ];
+     ,
+     (*若右端點之首週期坐標n2[t]  小於  左端點之首週期坐標n1[
+     t]，則發生跨單元接觸，先提取右端點至單元最右端；再提取單元最左端至左端點*)
+     (*注意：數組xdata[j]  第一個數是xdata[j][[1]]  *)
+     For[i = n2[t] + 1, i <= T, i++,
+      AppendTo[   conheightdata[t][j], xdata[j][[i]]     ];
+      ];
+     For[i = 1, i <= n1[t] + 1, i++,
+      AppendTo[   conheightdata[t][j], xdata[j][[i]]     ];
+      ];
+     
+     ];
+    
+    ];
+  
+  ];
+
+ 
+ 
+
